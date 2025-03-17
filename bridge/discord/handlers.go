@@ -98,14 +98,27 @@ func (b *Bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 		return
 	}
 
+	rmsg := config.Message{Account: b.Account, Avatar: "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg", UserID: m.Author.ID, ID: m.ID}
+	rmsg.Extra = make(map[string][]interface{})
 	// add the url of the attachments to content
 	if len(m.Attachments) > 0 {
 		for _, attach := range m.Attachments {
-			m.Content = m.Content + "\n" + attach.URL
+			// m.Content = m.Content + "\n" + attach.URL
+			file := config.FileInfo{
+				Name: attach.Filename,
+				// Data
+				Comment: m.Content,
+				URL:     attach.URL,
+				Size:    int64(attach.Size),
+				Avatar:  false,
+				// SHA
+				NativeID: attach.ID,
+			}
+
+			rmsg.Extra["file"] = append(rmsg.Extra["file"], file)
+
 		}
 	}
-
-	rmsg := config.Message{Account: b.Account, Avatar: "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg", UserID: m.Author.ID, ID: m.ID}
 
 	b.Log.Debugf("== Receiving event %#v", m.Message)
 
@@ -139,7 +152,7 @@ func (b *Bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 
 	// no empty messages
-	if rmsg.Text == "" {
+	if rmsg.Text == "" && len(m.Attachments) == 0 {
 		return
 	}
 
