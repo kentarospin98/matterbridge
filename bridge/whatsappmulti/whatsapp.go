@@ -14,6 +14,7 @@ import (
 
 	"github.com/42wim/matterbridge/bridge"
 	"github.com/42wim/matterbridge/bridge/config"
+	"github.com/42wim/matterbridge/bridge/helper"
 	"github.com/mdp/qrterminal"
 
 	"go.mau.fi/whatsmeow"
@@ -146,6 +147,7 @@ func (b *Bwhatsapp) Connect() error {
 	b.Log.Info("Getting user avatars..")
 
 	for jid := range b.users {
+		break
 		info, err := b.GetProfilePicThumb(jid)
 		if err != nil {
 			b.Log.Warnf("Could not get profile photo of %s: %v", jid, err)
@@ -357,7 +359,7 @@ func (b *Bwhatsapp) PostAudioMessage(msg config.Message, filetype string) (strin
 	ID, err := b.sendMessage(msg, &message)
 
 	var captionMessage proto.Message
-	caption := msg.Username + fi.Comment + "\u2B06" // the char on the end is upwards arrow emoji
+	caption := msg.Username + fi.Comment + " ⬆️" // the char on the end is upwards arrow emoji
 	captionMessage.Conversation = &caption
 
 	captionID := whatsmeow.GenerateMessageID()
@@ -406,6 +408,16 @@ func (b *Bwhatsapp) Send(msg config.Message) (string, error) {
 
 		b.Log.Debugf("Extra file is %#v", filetype)
 
+		var err error
+
+		if fi.Data == nil && fi.URL != "" {
+			fi.Data, err = helper.DownloadFile(fi.URL)
+			msg.Extra["file"][0] = fi
+			if err != nil {
+				return "", err
+			}
+		}
+
 		// TODO: add different types
 		// TODO: add webp conversion
 		switch filetype {
@@ -415,7 +427,7 @@ func (b *Bwhatsapp) Send(msg config.Message) (string, error) {
 			return b.PostVideoMessage(msg, filetype)
 		case "audio/ogg":
 			return b.PostAudioMessage(msg, "audio/ogg; codecs=opus") // TODO: Detect if it is actually OPUS
-		case "audio/aac", "audio/mp4", "audio/amr", "audio/mpeg":
+		case "audio/aac", "audio/mp4", "audio/amr", "audio/mpeg", "audio/mp4a-latm":
 			return b.PostAudioMessage(msg, filetype)
 		default:
 			return b.PostDocumentMessage(msg, filetype)
