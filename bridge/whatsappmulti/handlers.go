@@ -101,7 +101,7 @@ func (b *Bwhatsapp) handleTopicChange(event *events.GroupInfo) {
 func (b *Bwhatsapp) handleMessage(message *events.Message) {
 	msg := message.Message
 	switch {
-	case msg == nil, message.Info.IsFromMe, message.Info.Timestamp.Before(b.startedAt):
+	case msg == nil, (message.Info.IsFromMe && !b.GetBool("AcceptSelf")), message.Info.Timestamp.Before(b.startedAt):
 		return
 	}
 
