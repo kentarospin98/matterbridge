@@ -14,7 +14,6 @@ import (
 
 	"github.com/42wim/matterbridge/bridge"
 	"github.com/42wim/matterbridge/bridge/config"
-	"github.com/42wim/matterbridge/bridge/helper"
 	"github.com/mdp/qrterminal"
 
 	"go.mau.fi/whatsmeow"
@@ -407,16 +406,6 @@ func (b *Bwhatsapp) Send(msg config.Message) (string, error) {
 		filetype := mime.TypeByExtension(filepath.Ext(fi.Name))
 
 		b.Log.Debugf("Extra file is %#v", filetype)
-
-		var err error
-
-		if fi.Data == nil && fi.URL != "" {
-			fi.Data, err = helper.DownloadFile(fi.URL)
-			msg.Extra["file"][0] = fi
-			if err != nil {
-				return "", err
-			}
-		}
 
 		// TODO: add different types
 		// TODO: add webp conversion

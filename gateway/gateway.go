@@ -10,6 +10,7 @@ import (
 
 	"github.com/42wim/matterbridge/bridge"
 	"github.com/42wim/matterbridge/bridge/config"
+	"github.com/42wim/matterbridge/bridge/helper"
 	"github.com/42wim/matterbridge/internal"
 	"github.com/d5/tengo/v2"
 	"github.com/d5/tengo/v2/stdlib"
@@ -507,6 +508,20 @@ func (gw *Gateway) SendMessage(
 	defer func(t time.Time) {
 		gw.logger.Debugf("=> Send from %s (%s) to %s (%s) took %s", msg.Account, rmsg.Channel, dest.Account, channel.Name, time.Since(t))
 	}(time.Now())
+
+	// Download attachments
+	if msg.Extra["file"] != nil {
+		for index, fi := range msg.Extra["file"] {
+			file := fi.(config.FileInfo)
+			if file.Data == nil && file.URL != "" {
+				file.Data, err = helper.DownloadFile(file.URL)
+				msg.Extra["file"][index] = file
+				if err != nil {
+					return "", err
+				}
+			}
+		}
+	}
 
 	mID, err := dest.Send(msg)
 	if err != nil {
